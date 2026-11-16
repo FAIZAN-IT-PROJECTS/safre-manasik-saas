@@ -547,7 +547,9 @@ async function loadTenantBrand(tenantId) {
     : null;
   const brand = tenant?.name || 'Safre Manasik';
   const rawLogo = tenant?.logoUrl || '';
-  const logoUrl = rawLogo ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : `https://app.safremanasik.com${rawLogo.startsWith('/') ? '' : '/'}${rawLogo}`) : '';
+  // Pass absolute URLs and uploaded data: URLs through unchanged; only prefix
+  // truly relative paths with the app origin (never mangle a data:/https: logo).
+  const logoUrl = rawLogo ? (/^(https?:|data:)/i.test(rawLogo) ? rawLogo : `https://app.safremanasik.com${rawLogo.startsWith('/') ? '' : '/'}${rawLogo}`) : '';
   const addressLine = [tenant?.address, tenant?.city, tenant?.country].filter(Boolean).join(', ');
   return { tenant, brand, logoUrl, addressLine };
 }

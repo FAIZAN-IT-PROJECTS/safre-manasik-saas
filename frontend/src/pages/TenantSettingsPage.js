@@ -4,10 +4,51 @@ import {
   Card, CardContent, Divider, FormControl, InputLabel, Select, MenuItem,
   Switch, FormControlLabel, Alert, Link, Autocomplete, InputAdornment,
 } from '@mui/material';
-import { Business, Save, Payment, OpenInNew } from '@mui/icons-material';
+import { Business, Save, Payment, OpenInNew, CloudUpload } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import COUNTRIES, { getCountryByName } from '../data/countries';
+
+// Convert common share-page links to direct image URLs (client-side mirror of
+// the server resolver) so the live preview works immediately. ImgBB needs a
+// server fetch, so it's resolved on Save — here we just flag it to the user.
+function normalizeImageUrl(u) {
+  const v = (u || '').trim();
+  if (!v || /^data:image\//i.test(v) || !/^https?:\/\//i.test(v)) return v;
+  try {
+    const url = new URL(v);
+    const host = url.hostname.toLowerCase();
+    if (/(^|\.)drive\.google\.com$/.test(host)) {
+      const m = url.pathname.match(/\/file\/d\/([^/]+)/);
+      const id = (m && m[1]) || url.searchParams.get('id');
+      if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+    if (/(^|\.)dropbox\.com$/.test(host)) {
+      url.searchParams.delete('dl'); url.searchParams.set('raw', '1'); return url.toString();
+    }
+    if (/(^|\.)imgur\.com$/.test(host) && !host.startsWith('i.')) {
+      const m = url.pathname.match(/^\/([A-Za-z0-9]{5,12})$/);
+      if (m) return `https://i.imgur.com/${m[1]}.png`;
+    }
+  } catch { /* leave as-is */ }
+  return v;
+}
+
+// True when the URL is an image SHARE PAGE (not a direct image) — used to warn
+// the user. ImgBB share pages are auto-resolved on the server at save time.
+function looksLikeSharePage(u) {
+  const v = (u || '').trim();
+  if (!v || /^data:image\//i.test(v)) return false;
+  try {
+    const url = new URL(v);
+    const host = url.hostname.toLowerCase();
+    if (/^(www\.)?ibb\.co$/.test(host)) return true;
+    if (/(^|\.)drive\.google\.com$/.test(host) && /\/file\/d\//.test(url.pathname)) return true;
+    if (/(^|\.)dropbox\.com$/.test(host) && url.searchParams.get('dl') === '0') return true;
+    if (/(^|\.)imgur\.com$/.test(host) && !host.startsWith('i.') && !/\.(png|jpe?g|gif|webp|svg)$/i.test(url.pathname)) return true;
+  } catch { return false; }
+  return false;
+}
 
 export default function TenantSettingsPage() {
   const [tenant, setTenant] = useState(null);
@@ -62,6 +103,46 @@ export default function TenantSettingsPage() {
       return false;
     }
     return true;
+  };
+
+  // Upload a logo file → compact data: URL (needs no external URL at all).
+  // Raster images are downscaled to 400px; SVGs are kept as vectors.
+  const onUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file (PNG, JPG, SVG…)'); return; }
+    if (file.type === 'image/svg+xml') {
+      if (file.size > 400 * 1024) { toast.error('SVG is too large — please use a smaller file'); return; }
+      const r = new FileReader();
+      r.onload = () => { setForm((f) => ({ ...f, logoUrl: String(r.result) })); toast.success('Logo loaded — click Save Settings to apply'); };
+      r.onerror = () => toast.error('Could not read that image');
+      r.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 400;
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (!w || !h) { toast.error('Could not read image dimensions'); return; }
+        if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let out = canvas.toDataURL('image/png');
+        if (out.length > 300 * 1024) out = canvas.toDataURL('image/jpeg', 0.85);
+        if (out.length > 700 * 1024) { toast.error('Image is too large after processing — try a simpler logo'); return; }
+        setForm((f) => ({ ...f, logoUrl: out }));
+        toast.success('Logo loaded — click Save Settings to apply');
+      };
+      img.onerror = () => toast.error('Could not read that image');
+      img.src = String(reader.result);
+    };
+    reader.onerror = () => toast.error('Could not read that file');
+    reader.readAsDataURL(file);
   };
 
   const save = async () => {
@@ -254,11 +335,29 @@ export default function TenantSettingsPage() {
             <TextField
               fullWidth
               label="Logo URL"
-              value={form.logoUrl}
+              value={(form.logoUrl || '').startsWith('data:') ? '(uploaded image)' : (form.logoUrl || '')}
+              disabled={(form.logoUrl || '').startsWith('data:')}
               onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+              onBlur={(e) => { const n = normalizeImageUrl(e.target.value); if (n !== e.target.value) setForm((f) => ({ ...f, logoUrl: n })); }}
               placeholder="https://example.com/your-logo.png"
-              helperText="Paste a public HTTPS image URL (PNG/SVG/JPG). Once saved, your logo will replace 'Safre Manasik' across the app for users in your tenant. Leave blank to use the default platform logo."
+              helperText="Paste a public HTTPS image URL (PNG/SVG/JPG) OR upload a file below. Once saved, your logo replaces 'Safre Manasik' across your tenant. Leave blank for the default platform logo."
             />
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>
+              <Button variant="outlined" component="label" startIcon={<CloudUpload />}>
+                Upload Image
+                <input hidden type="file" accept="image/*" onChange={onUpload} />
+              </Button>
+              {form.logoUrl ? (
+                <Button size="small" color="inherit" onClick={() => setForm({ ...form, logoUrl: '' })}>Clear</Button>
+              ) : null}
+            </Stack>
+            {looksLikeSharePage(form.logoUrl) && (
+              <Alert severity="warning" sx={{ mt: 1.5 }}>
+                That looks like an image <strong>share page</strong>, not a direct image link — so the preview can&apos;t load it.
+                It will be <strong>auto-converted to a direct image when you Save</strong>. You can also paste the direct
+                image link (open the image, then right-click → <em>Copy image address</em>) or use <strong>Upload Image</strong>.
+              </Alert>
+            )}
           </Grid>
           <Grid item xs={12} md={4}>
             <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 2, bgcolor: '#F3F8F5', borderRadius: 2, border: '1px dashed #C9A227' }}>
@@ -272,7 +371,7 @@ export default function TenantSettingsPage() {
                 />
               ) : null}
               <Typography variant="caption" color="error" sx={{ display: form.logoUrl ? 'none' : 'block' }}>
-                {form.logoUrl ? 'Image failed to load' : 'No logo URL set (platform default will be used)'}
+                {form.logoUrl ? 'Image failed to load' : 'No logo set (platform default will be used)'}
               </Typography>
             </Box>
           </Grid>

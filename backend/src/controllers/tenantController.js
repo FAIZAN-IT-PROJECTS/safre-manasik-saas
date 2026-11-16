@@ -3,6 +3,7 @@ const { getTenantId, runWithTenant } = require('../config/tenantContext');
 const { getTenantQuota } = require('../middleware/quota');
 const { invalidateTenantPaypal } = require('../services/paypalClient');
 const { purgeTenantData } = require('../utils/tenantPurge');
+const { resolveLogoUrl } = require('../utils/logoUrl');
 
 // Mask the PayPal secret in any response — never return the raw value to the
 // browser. We keep a small "tail" so the admin can recognise which key is set.
@@ -70,6 +71,14 @@ const updateCurrent = async (req, res, next) => {
 
     if (data.paypalMode && !['sandbox', 'live'].includes(data.paypalMode)) {
       return res.status(400).json({ error: 'paypalMode must be "sandbox" or "live"' });
+    }
+
+    // Normalise the logo URL: convert well-known "share page" links (ImgBB,
+    // Google Drive, Dropbox, Imgur) to direct image URLs so the logo actually
+    // renders. Uploaded (data:) and already-direct URLs pass through unchanged.
+    // Best-effort — never blocks the save.
+    if (typeof data.logoUrl === 'string' && data.logoUrl.trim()) {
+      try { data.logoUrl = await resolveLogoUrl(data.logoUrl); } catch { /* keep original */ }
     }
 
     let tenant;

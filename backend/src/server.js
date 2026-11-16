@@ -57,7 +57,18 @@ if (Sentry && process.env.SENTRY_DSN) {
 // that req.ip reflects the real client IP for rate limiting and logging.
 app.set('trust proxy', 1);
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // Server-rendered pages (voucher / invoice prints) embed the tenant's logo,
+  // which may be an external https URL or an uploaded data: URL. Allow both for
+  // images only; all other CSP directives keep helmet's secure defaults.
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      'img-src': ["'self'", 'data:', 'https:'],
+    },
+  },
+}));
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
   : ['https://app.safremanasik.com'];
