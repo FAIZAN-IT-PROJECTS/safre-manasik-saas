@@ -56,7 +56,7 @@ export default function Layout() {
       }}>
         <Toolbar sx={{ gap: 1 }}>
           {isMobile && (
-            <IconButton edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ color: '#1B4B35' }}>
+            <IconButton edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ color: theme.palette.primary.main }}>
               <MenuIcon />
             </IconButton>
           )}
@@ -75,7 +75,7 @@ export default function Layout() {
           {/* Right: user info + avatar */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-              <Typography variant="body2" fontWeight={700} color="#1B4B35">{user?.name}</Typography>
+              <Typography variant="body2" fontWeight={700} color="text.primary">{user?.name}</Typography>
               <Typography variant="caption" sx={{ color: roleColor, fontWeight: 600 }}>{roleLabel}</Typography>
             </Box>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
@@ -91,15 +91,15 @@ export default function Layout() {
             PaperProps={{ sx: { mt: 0.5, minWidth: 180, boxShadow: '0 4px 20px rgba(27,75,53,0.15)', borderRadius: 2 } }}
           >
             <Box sx={{ px: 2, py: 1 }}>
-              <Typography variant="caption" fontWeight={700} color="#1B4B35">{user?.name}</Typography>
+              <Typography variant="caption" fontWeight={700} color="text.primary">{user?.name}</Typography>
               <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.68rem' }}>{user?.email}</Typography>
             </Box>
             <Divider />
-            <MenuItem onClick={() => { navigate('/profile'); setAnchorEl(null); }} sx={{ gap: 1.5, color: '#1B4B35' }}>
+            <MenuItem onClick={() => { navigate('/profile'); setAnchorEl(null); }} sx={{ gap: 1.5, color: 'text.primary' }}>
               <Person fontSize="small" /> Profile
             </MenuItem>
             {user?.role === 'ADMIN' && (
-              <MenuItem onClick={() => { navigate('/config'); setAnchorEl(null); }} sx={{ gap: 1.5, color: '#1B4B35' }}>
+              <MenuItem onClick={() => { navigate('/config'); setAnchorEl(null); }} sx={{ gap: 1.5, color: 'text.primary' }}>
                 <Settings fontSize="small" /> System Config
               </MenuItem>
             )}
@@ -114,12 +114,12 @@ export default function Layout() {
       {isMobile ? (
         <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
-          sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH, bgcolor: '#0D2B1A' } }}>
+          sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH, bgcolor: theme.palette.appSidebar } }}>
           <Sidebar onClose={() => setMobileOpen(false)} />
         </Drawer>
       ) : (
         <Drawer variant="permanent"
-          sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, bgcolor: '#0D2B1A', border: 'none' } }}>
+          sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, bgcolor: theme.palette.appSidebar, border: 'none' } }}>
           <Sidebar />
         </Drawer>
       )}

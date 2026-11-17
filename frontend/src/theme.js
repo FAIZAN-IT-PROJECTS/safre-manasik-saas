@@ -78,6 +78,9 @@ export function createAppTheme(primaryColor) {
       success:    { main: '#16A34A', light: '#F0FDF4' },
       background: { default: BRAND.cream, paper: '#FFFFFF' },
       text:       { primary: C.textPrimary, secondary: C.textSecondary },
+      // Custom token: the dark app chrome (sidebar / drawer). Near-black, tinted
+      // by the brand colour. Consumed by Layout.js and Sidebar.js.
+      appSidebar: C.surfaceDark,
     },
     typography: {
       fontFamily: '"Inter", "Segoe UI", Arial, sans-serif',

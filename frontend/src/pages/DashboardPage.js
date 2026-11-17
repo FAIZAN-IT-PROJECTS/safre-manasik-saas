@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Box, Chip, CircularProgress, Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, Chip, CircularProgress, Avatar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, useTheme } from '@mui/material';
 import { BookOnline, People, CardTravel, AttachMoney, TrendingUp, CheckCircle, HourglassEmpty, Cancel } from '@mui/icons-material';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
@@ -26,6 +26,7 @@ const StatCard = ({ title, value, icon, color, sub }) => (
 );
 
 export default function DashboardPage() {
+  const theme = useTheme();
   const { user, isCustomer } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -55,25 +56,25 @@ export default function DashboardPage() {
   const stats = data?.stats || {};
   const chartData = {
     labels: (data?.bookingsByMonth || []).map((b) => b.month),
-    datasets: [{ label: 'Bookings', data: (data?.bookingsByMonth || []).map((b) => Number(b.count)), backgroundColor: '#1B4B35', borderRadius: 6 }],
+    datasets: [{ label: 'Bookings', data: (data?.bookingsByMonth || []).map((b) => Number(b.count)), backgroundColor: theme.palette.primary.main, borderRadius: 6 }],
   };
 
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700} color="#1B4B35">Dashboard</Typography>
+        <Typography variant="h5" fontWeight={700} color={theme.palette.primary.main}>Dashboard</Typography>
         <Typography color="text.secondary">Welcome back, {user?.name}. Here's your system overview.</Typography>
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Bookings" value={stats.totalBookings || 0} icon={<BookOnline />} color="#1B4B35" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Bookings" value={stats.totalBookings || 0} icon={<BookOnline />} color={theme.palette.primary.main} /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Confirmed" value={stats.confirmedBookings || 0} icon={<CheckCircle />} color="#16a34a" /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Tentative" value={stats.tentativeBookings || 0} icon={<HourglassEmpty />} color="#C9A227" /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Cancelled" value={stats.cancelledBookings || 0} icon={<Cancel />} color="#DC2626" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={fmtCurrency(stats.totalRevenue)} icon={<AttachMoney />} color="#2E6B4F" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Revenue" value={fmtCurrency(stats.totalRevenue)} icon={<AttachMoney />} color={theme.palette.primary.main} /></Grid>
         <Grid item xs={12} sm={6} md={3}><StatCard title="Customers" value={stats.totalCustomers || 0} icon={<People />} color="#C9A227" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Agents" value={stats.totalAgents || 0} icon={<TrendingUp />} color="#1B4B35" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard title="Active Packages" value={stats.totalPackages || 0} icon={<CardTravel />} color="#2E6B4F" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Agents" value={stats.totalAgents || 0} icon={<TrendingUp />} color={theme.palette.primary.main} /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Active Packages" value={stats.totalPackages || 0} icon={<CardTravel />} color={theme.palette.primary.main} /></Grid>
       </Grid>
 
       <Grid container spacing={3}>
