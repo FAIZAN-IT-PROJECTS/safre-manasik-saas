@@ -2,7 +2,8 @@
 # Railway auto-detects services from /backend and /frontend dirs.
 
 [build]
-# Railway will use each service's railway.json + Dockerfile
+# Each service builds with NIXPACKS (see backend/railway.json + railway.toml,
+# frontend/railway.json). The Dockerfiles are a local/fallback path only.
 
 [[services]]
 name = "backend"

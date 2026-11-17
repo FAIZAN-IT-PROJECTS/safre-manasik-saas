@@ -1,5 +1,9 @@
 # ─── Stage 1: Builder ─────────────────────────────────────────────────────
-FROM node:18-bullseye-slim AS builder
+# NOTE: Prod deploys on Railway use NIXPACKS (see railway.json / railway.toml).
+# This Dockerfile is a fallback for local docker + any Dockerfile-builder env.
+# Base is Bookworm, not Bullseye: Bullseye is EOL so its apt mirrors no longer
+# resolve the Chromium/font packages below (the cause of the failed build).
+FROM node:18-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -14,7 +18,7 @@ RUN npm ci --only=production && npm cache clean --force
 RUN npx prisma generate
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────
-FROM node:18-bullseye-slim AS runtime
+FROM node:18-bookworm-slim AS runtime
 
 # Chromium + fonts for Puppeteer (voucher PDF generation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -49,6 +53,8 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://localhost:'+(process.env.PORT||5000)+'/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-# Run prisma db push to apply schema, then start the server.
-# This makes first-deploy painless on Railway. After first deploy, prisma db push is a no-op.
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node src/server.js"]
+# Schema changes are applied by src/bootstrap.js (raw ALTER ... IF NOT EXISTS on
+# boot) — NOT prisma db push: the prisma CLI is a devDependency and is absent
+# from the production image, so `prisma db push` here crash-loops the container
+# (prod outage 2026-07-05). Just start the server; bootstrap runs on startup.
+CMD ["node", "src/server.js"]
