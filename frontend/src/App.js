@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
-import theme from './theme';
+import { createAppTheme } from './theme';
 import { useAuth } from './context/AuthContext';
 
 import Layout from './components/layout/Layout';
@@ -95,6 +95,9 @@ const PrivateRoute = ({ children, roles, perm }) => {
 
 export default function App() {
   const { loading, user } = useAuth();
+  // Theme follows the current tenant's primary colour (from /auth/me). Falls back
+  // to the default Safre brand when there is no tenant or no custom colour.
+  const theme = useMemo(() => createAppTheme(user?.tenant?.primaryColor), [user?.tenant?.primaryColor]);
   if (loading) return <ThemeProvider theme={theme}><CssBaseline /><Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress size={48} /></Box></ThemeProvider>;
 
   const homeRoute = homePath(user);

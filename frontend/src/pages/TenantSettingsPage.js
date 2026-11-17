@@ -8,6 +8,7 @@ import { Business, Save, Payment, OpenInNew, CloudUpload } from '@mui/icons-mate
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import COUNTRIES, { getCountryByName } from '../data/countries';
+import { useAuth } from '../context/AuthContext';
 
 // Convert common share-page links to direct image URLs (client-side mirror of
 // the server resolver) so the live preview works immediately. ImgBB needs a
@@ -51,6 +52,7 @@ function looksLikeSharePage(u) {
 }
 
 export default function TenantSettingsPage() {
+  const { reload } = useAuth();
   const [tenant, setTenant] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -154,6 +156,9 @@ export default function TenantSettingsPage() {
       await api.put('/tenant/current', payload);
       toast.success('Settings saved');
       load();
+      // Refresh the auth context so branding (logo + primary colour) applies
+      // app-wide immediately, without needing a manual page reload.
+      reload();
     } finally {
       setSaving(false);
     }
